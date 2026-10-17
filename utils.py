@@ -7,11 +7,12 @@
 #     finally (даже при возникновении ошибок) сохраняет итоговый словарь отчета в файл reports/audit_report.json с
 #     помощью pathlib.
 
-from functools import wraps
-from contextlib import contextmanager, Iterator
-from pathlib import Path
 import json
 import time
+from functools import wraps
+from contextlib import contextmanager
+from pathlib import Path
+
 
 def log_execution_time(enabled: bool = True):
 
@@ -31,10 +32,10 @@ def log_execution_time(enabled: bool = True):
     return decorator
 
 @contextmanager
-def AuditSession() -> Iterator[None]:
+def AuditSession():
     print(f"[MONITOR] Start script work")
     start_time = (time.ctime(), time.time())
-    result = None
+    result = {}
     try:
         yield result
     except Exception as error:
@@ -42,33 +43,43 @@ def AuditSession() -> Iterator[None]:
         report = {
                     "status": "failed",
                     "session_info": {
-                        "start_time": start_time[0],
-                        "end_time": end_time[0],
-                        "duration_seconds": round(start_time[1] - end_time[1],2)
+                    "start_time": start_time[0],
+                    "end_time": end_time[0],
+                    "duration_seconds": round(start_time[1] - end_time[1],2)
                     },
-                    "error": error.info,
-}   
-    else:
+                    "error": str(error)
+        
+ } 
+        # For dev............................................
+        raise error
 
+        
+                    
+
+    finally:
+        print(result)
         report = {
                     "status": "success",
                     "session_info": {
                         "start_time": start_time[0],
-                        "end_time": end_time[0],
-                        "duration_seconds": round(start_time[1] - end_time[1],2)
+                        "end_time": time.ctime(),
+                        "duration_seconds": round(time.time() - start_time[1], 4)
                     },
                     "statistics": {
-                        "total_files_processed": report.files_counter,
-                        "total_lines_scanned": report.lines_counter,
-                        "total_errors_found": report.errors_counter
+                        "total_files_processed": result["total_files_processed"],
+                        "total_lines_scanned": result["total_lines_scanned"],
+                        "total_errors_found": result["total_errors_found"]
                     },
-                    "error_types": report.errors_types,
-                    "details": report.details
-                    
-}
-    finally:
+                    "error_types": result["error_types"],
+                    "details": result["details"]
+                }
         audit_report_path = Path(__file__).resolve().parent / "reports/audit_report.json"
-        with open(audit_report_path, "w", encoding="utf-8") as audit_report:
-            json.dump(report, audit_report_path, ensure_ascii=False, indent=4)
-            
-        print(f"[MONITOR] Script ended work. All information wrote by path reports/audit_report.json.")
+        try:
+            with open(audit_report_path, "w", encoding="utf-8") as audit_report:
+                json.dump(report, audit_report, ensure_ascii=False, indent=4)
+        except (json.JSONDecodeError, json.JSONDecodeError, FileNotFoundError, FileExistsError) as error:
+            print("The critical error happened, file didn't save")
+        else:
+            print(f"[MONITOR] Script ended work. with time <{round((start_time[1] - time.time()), 4)}>s")
+
+

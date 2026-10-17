@@ -21,3 +21,8 @@ class LogFormatError(Exception):
     def __init__(self, line_num: int):
         print(f"[ERROR]Critical error of parsing the line {line_num}")
         super().__init__()
+
+class FileParseError(Exception):
+    def __init__(self):
+        print(f"[ERROR] Script can't parse a log file")
+        super().__init__()
